@@ -17,11 +17,20 @@ namespace IMDB.Business.Services
             _context = context;
         }
 
-        public async Task<IEnumerable<TitleDto>> GetAllAsync(int page, int pageSize)
+        public async Task<PaginatedTitleResponseDto> GetAllAsync(int page, int pageSize)
         {
             using var connection = _context.Database.GetDbConnection();
             var offset = (page - 1) * pageSize;
-            var sql = @"select 
+
+            // Get total count first
+            var countSql = @"select
+                       count(*)
+                       from titles t
+                       left join title_ratings tr on t.title_id = tr.title_id";
+            var totalCount = await connection.ExecuteScalarAsync<int>(countSql);
+
+            // Get paginated data
+            var sql = @"select
                        t.title_id as TitleId,
                        t.primary_title as PrimaryTitle,
                        t.title_type as TitleType,
@@ -32,7 +41,15 @@ namespace IMDB.Business.Services
                        left join title_ratings tr on t.title_id = tr.title_id
                        ORDER BY AverageRating desc OFFSET @Offset LIMIT @PageSize";
             var parameters = new { Offset = offset, PageSize = pageSize };
-            return await connection.QueryAsync<TitleDto>(sql, parameters);
+            var data = await connection.QueryAsync<TitleDto>(sql, parameters);
+
+            return new PaginatedTitleResponseDto
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                Data = data
+            };
         }
     }
 }

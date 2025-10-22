@@ -15,14 +15,14 @@ namespace IMDB.API.Controllers
 
         public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            var movies = await _service.GetAllAsync(page, pageSize);
+            var result = await _service.GetAllAsync(page, pageSize);
 
             var response = new
             {
-                page,
-                pageSize,
-                total = movies.Count(),
-                data = movies,
+                page = result.Page,
+                pageSize = result.PageSize,
+                total = result.TotalCount,
+                data = result.Data,
                 links = new
                 {
                     self = Url.Action(nameof(GetAll), new { page, pageSize }),

@@ -13,6 +13,7 @@ builder.Services.AddDbContext<IMDBDbContext>(options =>
 // Register UnitOfWork & Services
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<TitleService>();
+builder.Services.AddScoped<UserService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

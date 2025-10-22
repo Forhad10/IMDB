@@ -19,7 +19,7 @@ namespace IMDB.API.Controllers
 
             var response = new
             {
-                page,  //test
+                page,
                 pageSize,
                 total = movies.Count(),
                 data = movies,

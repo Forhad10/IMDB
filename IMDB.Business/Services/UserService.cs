@@ -1,7 +1,8 @@
-using IMDB.Data.Entities;
-using IMDB.Business.DTOs;
-using Microsoft.EntityFrameworkCore;
 using Dapper;
+using IMDB.Business.DTOs;
+using IMDB.Data.Entities;
+using Microsoft.EntityFrameworkCore;
+using System;
 using System.Data;
 using System.Security.Cryptography;
 using System.Text;
@@ -121,9 +122,9 @@ namespace IMDB.Business.Services
         }
 
 
-     
+
         /// get  user bookmarks
-    
+
 
         public async Task<UserBookmarksResponseDto> GetUserBookmarksAsync(Guid userId, int page = 1, int pageSize = 10)
         {
@@ -200,8 +201,8 @@ namespace IMDB.Business.Services
 
 
 
-      //// Get  user rating history
-    
+        //// Get  user rating history
+
         public async Task<UserRatingHistoryResponseDto> GetUserRatingHistoryAsync(Guid userId, int page = 1, int pageSize = 10)
         {
             using var connection = _context.Database.GetDbConnection();
@@ -235,16 +236,21 @@ namespace IMDB.Business.Services
 
         public async Task<UserRatingHistoryDto> AddOrUpdateRatingAsync(Guid userId, AddRatingDto ratingDto)
         {
-            // Check if rating already exists
-            var existingRating = await _context.UserRatingHistories
-                .FirstOrDefaultAsync(r => r.UserId == userId && r.TitleId == ratingDto.TitleId);
+          // Check if rating already exists
+                var existingRating = await _context.UserRatingHistories
+                    .FirstOrDefaultAsync(r => r.UserId == userId && r.TitleId == ratingDto.TitleId);
             if (existingRating != null)
             {
                 // Update existing rating
-                existingRating.Rating = ratingDto.Rating;
+                existingRating.PreviousRating = existingRating.Rating;  /// keep previous rating before new one this line should before next line
+                existingRating.Rating = ratingDto.Rating;              
                 existingRating.RatedAt = DateTime.Now;
                 _context.UserRatingHistories.Update(existingRating);
                 await _context.SaveChangesAsync();
+
+                // Update TitleRating with new average calculation
+                   await UpdateTitleRatingAsync(ratingDto.TitleId, userId, "update");
+
                 return new UserRatingHistoryDto
                 {
                     RatingHistoryId = existingRating.RatingHistoryId,
@@ -261,10 +267,20 @@ namespace IMDB.Business.Services
                     UserId = userId,
                     TitleId = ratingDto.TitleId,
                     Rating = ratingDto.Rating,
+                    PreviousRating = ratingDto.Rating,
                     RatedAt = DateTime.Now
                 };
                 _context.UserRatingHistories.Add(ratingHistory);
                 await _context.SaveChangesAsync();
+
+                // Update TitleRating with new average calculation
+
+
+
+                    await UpdateTitleRatingAsync(ratingDto.TitleId, userId, "add");
+
+   
+
                 return new UserRatingHistoryDto
                 {
                     RatingHistoryId = ratingHistory.RatingHistoryId,
@@ -272,23 +288,59 @@ namespace IMDB.Business.Services
                     Rating = ratingHistory.Rating ?? 0,
                     RatedAt = ratingHistory.RatedAt ?? DateTime.Now
                 };
+            }      
+        }
+
+        private async Task UpdateTitleRatingAsync(string titleId, Guid userId, string action)
+        {
+             var connection = _context.Database.GetDbConnection();
+            await connection.OpenAsync();
+
+            // Execute stored procedure with titleId, userId, and action parameters
+            var parameters = new
+            {
+                p_title_id = titleId,
+                p_user_id = userId,
+                p_action = action
+            };
+            try
+            {
+                await connection.ExecuteAsync("UpdateTitleRating", parameters, commandType: CommandType.StoredProcedure);
+            }
+           catch
+           (Exception ex)
+            {
+                // Log the exception (in real application, use a logging framework)
+                Console.WriteLine($"Failed to update title rating for {titleId}, User: {userId}, Action: {action}. Error: {ex.Message}");
             }
         }
 
         public async Task<bool> RemoveRatingAsync(Guid userId, string titleId)
         {
-            var rating = await _context.UserRatingHistories
-                .FirstOrDefaultAsync(r => r.UserId == userId && r.TitleId == titleId);
-            if (rating == null)
+            try
             {
-                return false;
+                var rating = await _context.UserRatingHistories
+                    .FirstOrDefaultAsync(r => r.UserId == userId && r.TitleId == titleId);
+                if (rating == null)
+                {
+                    return false;
+                }
+
+                // Update TitleRating BEFORE removing the rating (stored procedure needs to find the user's rating)
+                await UpdateTitleRatingAsync(titleId, userId, "remove");
+
+                // Now remove the rating from database
+                _context.UserRatingHistories.Remove(rating);
+                await _context.SaveChangesAsync();
+
+                return true;
             }
-
-            _context.UserRatingHistories.Remove(rating);
-            await _context.SaveChangesAsync();
-            return true;
+            catch (Exception ex)
+            {
+                // Log the exception (in real application, use a logging framework)
+                Console.WriteLine($"Failed to remove rating for TitleId: {titleId}, UserId: {userId}. Error: {ex.Message}");
+                return false; // Ensure a value is returned in case of an exception
+            }
         }
-
-   
     }
 }

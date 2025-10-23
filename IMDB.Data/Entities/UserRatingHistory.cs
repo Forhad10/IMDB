@@ -12,6 +12,6 @@ public partial class UserRatingHistory
     public string TitleId { get; set; } = null!;
 
     public short? Rating { get; set; }
-
+    public short? PreviousRating { get; set; }
     public DateTime? RatedAt { get; set; }
 }

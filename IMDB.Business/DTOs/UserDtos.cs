@@ -60,6 +60,8 @@ namespace IMDB.Business.DTOs
     {
         public long RatingHistoryId { get; set; }
         public string TitleId { get; set; } = string.Empty;
+
+        public string TitleName { get; set; } = string.Empty;
         public short Rating { get; set; }
         public DateTime RatedAt { get; set; }
     }

@@ -1,6 +1,8 @@
 using IMDB.Data.Entities;
 using IMDB.Business.DTOs;
 using Microsoft.EntityFrameworkCore;
+using Dapper;
+using System.Data;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -202,28 +204,32 @@ namespace IMDB.Business.Services
     
         public async Task<UserRatingHistoryResponseDto> GetUserRatingHistoryAsync(Guid userId, int page = 1, int pageSize = 10)
         {
+            using var connection = _context.Database.GetDbConnection();
             var offset = (page - 1) * pageSize;
-            var totalCount = await _context.UserRatingHistories
-                .CountAsync(r => r.UserId == userId);
-            var ratingHistory = await _context.UserRatingHistories
-                .Where(r => r.UserId == userId)
-                .OrderByDescending(r => r.RatedAt)
-                .Skip(offset)
-                .Take(pageSize)
-                .Select(r => new UserRatingHistoryDto
-                {
-                    RatingHistoryId = r.RatingHistoryId,
-                    TitleId = r.TitleId,
-                    Rating = r.Rating ?? 0,
-                    RatedAt = r.RatedAt ?? DateTime.Now
-                })
-                .ToListAsync();
+
+            // Single SQL query that returns data and count of returned rows
+            var sql = @"SELECT
+                       u.rating_history_id as RatingHistoryId,
+                       u.title_id as TitleId,
+					   t.primary_title as TitleName,
+                       COALESCE(rating, 0) as Rating,
+                       COALESCE(rated_at, NOW()) as RatedAt
+                       FROM user_rating_history u
+					   inner join titles t on t.title_id=u.title_id
+                       WHERE user_id = @UserId
+                       ORDER BY rated_at DESC
+                       OFFSET @Offset ROWS
+                       FETCH NEXT @PageSize ROWS ONLY";
+
+            var parameters = new { UserId = userId, Offset = offset, PageSize = pageSize };
+            var data = await connection.QueryAsync<UserRatingHistoryDto>(sql, parameters);
+
             return new UserRatingHistoryResponseDto
             {
                 Page = page,
                 PageSize = pageSize,
-                TotalCount = totalCount,
-                Data = ratingHistory
+                TotalCount = data.Count(),
+                Data = data
             };
         }
 

@@ -307,6 +307,7 @@ public partial class IMDBDbContext : DbContext
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("rated_at");
             entity.Property(e => e.Rating).HasColumnName("rating");
+            entity.Property(e => e.PreviousRating).HasColumnName("previous_rating");
             entity.Property(e => e.TitleId)
                 .HasMaxLength(50)
                 .HasColumnName("title_id");

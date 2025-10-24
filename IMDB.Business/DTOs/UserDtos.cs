@@ -36,15 +36,14 @@ namespace IMDB.Business.DTOs
     public class UserBookmarkDto
     {
         public long BookmarkId { get; set; }
-        public string EntityType { get; set; } = string.Empty;
-        public string EntityId { get; set; } = string.Empty;
+        public string TitleId { get; set; } = string.Empty;
+        public string TitleName { get; set; } = string.Empty;
         public DateTime BookmarkedAt { get; set; }
     }
 
     public class AddBookmarkDto
     {
-        public string EntityType { get; set; } = string.Empty;
-        public string EntityId { get; set; } = string.Empty;
+        public string TitleId { get; set; } = string.Empty;
     }
 
     public class UserBookmarksResponseDto

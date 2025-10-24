@@ -9,9 +9,7 @@ public partial class UserBookmark
 
     public Guid UserId { get; set; }
 
-    public string? EntityType { get; set; }
-
-    public string? EntityId { get; set; }
+    public string? TitleId { get; set; }
 
     public DateTime? BookmarkedAt { get; set; }
 

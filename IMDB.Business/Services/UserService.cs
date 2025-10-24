@@ -128,28 +128,31 @@ namespace IMDB.Business.Services
 
         public async Task<UserBookmarksResponseDto> GetUserBookmarksAsync(Guid userId, int page = 1, int pageSize = 10)
         {
+            using var connection = _context.Database.GetDbConnection();
             var offset = (page - 1) * pageSize;
-            var totalCount = await _context.UserBookmarks
-                .CountAsync(b => b.UserId == userId);
-            var bookmarks = await _context.UserBookmarks
-                .Where(b => b.UserId == userId)
-                .OrderByDescending(b => b.BookmarkedAt)
-                .Skip(offset)
-                .Take(pageSize)
-                .Select(b => new UserBookmarkDto
-                {
-                    BookmarkId = b.BookmarkId,
-                    EntityType = b.EntityType ?? string.Empty,
-                    EntityId = b.EntityId ?? string.Empty,
-                    BookmarkedAt = b.BookmarkedAt ?? DateTime.Now
-                })
-                .ToListAsync();
+
+            // Single SQL query that returns data and count of returned rows
+            var sql = @"SELECT
+                       u.bookmark_id as BookmarkId,
+                       u.title_id as TitleId,
+					   t.primary_title as TitleName,
+                       COALESCE(u.bookmarked_at, NOW()) as BookmarkedAt
+                       FROM user_bookmarks u
+					   inner join titles t on t.title_id=u.title_id
+                       WHERE u.user_id = @UserId
+                       ORDER BY u.bookmarked_at DESC
+                       OFFSET @Offset ROWS
+                       FETCH NEXT @PageSize ROWS ONLY";
+
+            var parameters = new { UserId = userId, Offset = offset, PageSize = pageSize };
+            var data = await connection.QueryAsync<UserBookmarkDto>(sql, parameters);
+
             return new UserBookmarksResponseDto
             {
                 Page = page,
                 PageSize = pageSize,
-                TotalCount = totalCount,
-                Data = bookmarks
+                TotalCount = data.Count(),
+                Data = data
             };
         }
 
@@ -158,8 +161,7 @@ namespace IMDB.Business.Services
             // Check if bookmark already exists
             var existingBookmark = await _context.UserBookmarks
                 .FirstOrDefaultAsync(b => b.UserId == userId
-                    && b.EntityType == bookmarkDto.EntityType
-                    && b.EntityId == bookmarkDto.EntityId);
+                    && b.TitleId == bookmarkDto.TitleId);
             if (existingBookmark != null)
             {
                 throw new ArgumentException("Bookmark already exists for this entity");
@@ -168,27 +170,32 @@ namespace IMDB.Business.Services
             var bookmark = new UserBookmark
             {
                 UserId = userId,
-                EntityType = bookmarkDto.EntityType,
-                EntityId = bookmarkDto.EntityId,
+                TitleId = bookmarkDto.TitleId,
                 BookmarkedAt = DateTime.Now
             };
 
             _context.UserBookmarks.Add(bookmark);
             await _context.SaveChangesAsync();
 
+            // Get title name for the response
+            var titleName = await _context.Titles
+                .Where(t => t.TitleId == bookmarkDto.TitleId)
+                .Select(t => t.PrimaryTitle)
+                .FirstOrDefaultAsync() ?? string.Empty;
+
             return new UserBookmarkDto
             {
                 BookmarkId = bookmark.BookmarkId,
-                EntityType = bookmark.EntityType ?? string.Empty,
-                EntityId = bookmark.EntityId ?? string.Empty,
+                TitleId = bookmark.TitleId ?? string.Empty,
+                TitleName = titleName,
                 BookmarkedAt = bookmark.BookmarkedAt ?? DateTime.Now
             };
         }
 
-        public async Task<bool> RemoveBookmarkAsync(Guid userId, long bookmarkId)
+        public async Task<bool> RemoveBookmarkAsync(Guid userId, string titleId)
         {
             var bookmark = await _context.UserBookmarks
-                .FirstOrDefaultAsync(b => b.BookmarkId == bookmarkId && b.UserId == userId);
+                .FirstOrDefaultAsync(b => b.TitleId == titleId && b.UserId == userId);
             if (bookmark == null)
             {
                 return false;
@@ -255,6 +262,10 @@ namespace IMDB.Business.Services
                 {
                     RatingHistoryId = existingRating.RatingHistoryId,
                     TitleId = existingRating.TitleId,
+                    TitleName = await _context.Titles
+                        .Where(t => t.TitleId == existingRating.TitleId)
+                        .Select(t => t.PrimaryTitle)
+                        .FirstOrDefaultAsync() ?? string.Empty,
                     Rating = existingRating.Rating ?? 0,
                     RatedAt = existingRating.RatedAt ?? DateTime.Now
                 };
@@ -285,6 +296,10 @@ namespace IMDB.Business.Services
                 {
                     RatingHistoryId = ratingHistory.RatingHistoryId,
                     TitleId = ratingHistory.TitleId,
+                    TitleName = await _context.Titles
+                        .Where(t => t.TitleId == ratingHistory.TitleId)
+                        .Select(t => t.PrimaryTitle)
+                        .FirstOrDefaultAsync() ?? string.Empty,
                     Rating = ratingHistory.Rating ?? 0,
                     RatedAt = ratingHistory.RatedAt ?? DateTime.Now
                 };

@@ -257,12 +257,9 @@ public partial class IMDBDbContext : DbContext
                 .HasDefaultValueSql("now()")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("bookmarked_at");
-            entity.Property(e => e.EntityId)
+            entity.Property(e => e.TitleId)
                 .HasMaxLength(50)
-                .HasColumnName("entity_id");
-            entity.Property(e => e.EntityType)
-                .HasMaxLength(50)
-                .HasColumnName("entity_type");
+                .HasColumnName("title_id");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
             entity.HasOne(d => d.User).WithMany(p => p.UserBookmarks)

@@ -123,12 +123,12 @@ namespace IMDB.API.Controllers
             }
         }
 
-        [HttpDelete("{userId}/bookmarks/{bookmarkId}")]
-        public async Task<IActionResult> RemoveBookmark(Guid userId, long bookmarkId)
+        [HttpDelete("{userId}/bookmarks/{titleId}")]
+        public async Task<IActionResult> RemoveBookmark(Guid userId, string titleId)
         {
             try
             {
-                var result = await _userService.RemoveBookmarkAsync(userId, bookmarkId);
+                var result = await _userService.RemoveBookmarkAsync(userId, titleId);
 
                 if (!result)
                 {

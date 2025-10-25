@@ -14,6 +14,8 @@ builder.Services.AddDbContext<IMDBDbContext>(options =>
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<TitleService>();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<MovieSearchService>();
+builder.Services.AddScoped<ActorService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

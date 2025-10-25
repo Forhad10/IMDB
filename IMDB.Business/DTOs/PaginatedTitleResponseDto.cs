@@ -17,6 +17,7 @@ namespace IMDB.Business.DTOs
         public string? PrimaryTitle { get; set; }
         public string? TitleType { get; set; }
         public string? Genres { get; set; }
+        public string? StartYear { get; set; }
         public decimal AverageRating { get; set; }
         public int NumVotes { get; set; }
     }

@@ -33,6 +33,26 @@ namespace IMDB.API.Controllers
             return Ok(response);
         }
 
+        [HttpGet("withuser/{userId}")]
+        public async Task<IActionResult> GetAllWithUser(Guid userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        {
+            var result = await _service.GetAllWithUserAsync(userId, page, pageSize);
 
+            var response = new
+            {
+                page = result.Page,
+                pageSize = result.PageSize,
+                total = result.TotalCount,
+                data = result.Data,
+                links = new
+                {
+                    self = Url.Action(nameof(GetAllWithUser), new { userId, page, pageSize }),
+                    next = Url.Action(nameof(GetAllWithUser), new { userId, page = page + 1, pageSize }),
+                    prev = page > 1 ? Url.Action(nameof(GetAllWithUser), new { userId, page = page - 1, pageSize }) : null
+                }
+            };
+
+            return Ok(response);
+        }
     }
 }

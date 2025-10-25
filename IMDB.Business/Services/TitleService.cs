@@ -53,5 +53,55 @@ namespace IMDB.Business.Services
                 Data = data
             };
         }
+
+        public async Task<PaginatedTitleResponseDto> GetAllWithUserAsync(Guid userId, int page, int pageSize)
+        {
+            using var connection = _context.Database.GetDbConnection();
+            var offset = (page - 1) * pageSize;
+
+            // Get total count of titles the user has interacted with
+            var countSql = @"SELECT COUNT(*)
+                           FROM (
+                               SELECT TitleId as EntityId FROM UserBookmarks WHERE UserId = @UserId
+                               UNION
+                               SELECT TitleId as EntityId FROM UserRatingHistories WHERE UserId = @UserId
+                               UNION
+                               SELECT EntityId FROM UserNotes WHERE UserId = @UserId AND EntityType = 'Title'
+                           ) u";
+
+            var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { UserId = userId });
+
+            // Get paginated data of titles the user has interacted with
+            var sql = @"SELECT t.title_id as TitleId,
+                              t.primary_title as PrimaryTitle,
+                              t.title_type as TitleType,
+                              t.genres as Genres,
+                              t.start_year as StartYear,
+                              COALESCE(tr.average_rating, 0) as AverageRating,
+                              COALESCE(tr.num_votes, 0) as NumVotes
+                       FROM titles t
+                       INNER JOIN (
+                           SELECT TitleId as EntityId FROM UserBookmarks WHERE UserId = @UserId
+                           UNION
+                           SELECT TitleId as EntityId FROM UserRatingHistories WHERE UserId = @UserId
+                           UNION
+                           SELECT EntityId FROM UserNotes WHERE UserId = @UserId AND EntityType = 'Title'
+                       ) u ON t.title_id = u.EntityId
+                       LEFT JOIN title_ratings tr ON t.title_id = tr.title_id
+                       ORDER BY AverageRating DESC, t.title_id ASC
+                       OFFSET @Offset ROWS
+                       FETCH NEXT @PageSize ROWS ONLY";
+
+            var parameters = new { UserId = userId, Offset = offset, PageSize = pageSize };
+            var data = await connection.QueryAsync<TitleDto>(sql, parameters);
+
+            return new PaginatedTitleResponseDto
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                Data = data
+            };
+        }
     }
 }

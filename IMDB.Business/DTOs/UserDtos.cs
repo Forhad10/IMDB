@@ -83,13 +83,4 @@ namespace IMDB.Business.DTOs
         public int TotalCount { get; set; }
         public IEnumerable<UserRatingHistoryDto> Data { get; set; } = new List<UserRatingHistoryDto>();
     }
-
-    // Paginated Response Base
-    public class PaginatedResponseDto<T>
-    {
-        public int Page { get; set; }
-        public int PageSize { get; set; }
-        public int TotalCount { get; set; }
-        public IEnumerable<T> Data { get; set; } = new List<T>();
-    }
 }

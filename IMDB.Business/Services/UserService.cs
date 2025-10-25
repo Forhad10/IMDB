@@ -121,8 +121,6 @@ namespace IMDB.Business.Services
             return Convert.ToBase64String(bytes);
         }
 
-
-
         /// get  user bookmarks
 
 
@@ -205,9 +203,6 @@ namespace IMDB.Business.Services
             return true;
         }
 
-
-
-
         //// Get  user rating history
 
         public async Task<UserRatingHistoryResponseDto> GetUserRatingHistoryAsync(Guid userId, int page = 1, int pageSize = 10)
@@ -243,20 +238,20 @@ namespace IMDB.Business.Services
 
         public async Task<UserRatingHistoryDto> AddOrUpdateRatingAsync(Guid userId, AddRatingDto ratingDto)
         {
-          // Check if rating already exists
-                var existingRating = await _context.UserRatingHistories
-                    .FirstOrDefaultAsync(r => r.UserId == userId && r.TitleId == ratingDto.TitleId);
+            // Check if rating already exists
+            var existingRating = await _context.UserRatingHistories
+                .FirstOrDefaultAsync(r => r.UserId == userId && r.TitleId == ratingDto.TitleId);
             if (existingRating != null)
             {
                 // Update existing rating
-                existingRating.PreviousRating = existingRating.Rating;  /// keep previous rating before new one this line should before next line
-                existingRating.Rating = ratingDto.Rating;              
+                existingRating.PreviousRating = existingRating.Rating; // Keep previous rating before updating
+                existingRating.Rating = ratingDto.Rating;
                 existingRating.RatedAt = DateTime.Now;
                 _context.UserRatingHistories.Update(existingRating);
                 await _context.SaveChangesAsync();
 
                 // Update TitleRating with new average calculation
-                   await UpdateTitleRatingAsync(ratingDto.TitleId, userId, "update");
+                await UpdateTitleRatingAsync(ratingDto.TitleId, userId, "update");
 
                 return new UserRatingHistoryDto
                 {
@@ -285,12 +280,7 @@ namespace IMDB.Business.Services
                 await _context.SaveChangesAsync();
 
                 // Update TitleRating with new average calculation
-
-
-
-                    await UpdateTitleRatingAsync(ratingDto.TitleId, userId, "add");
-
-   
+                await UpdateTitleRatingAsync(ratingDto.TitleId, userId, "add");
 
                 return new UserRatingHistoryDto
                 {
@@ -303,12 +293,12 @@ namespace IMDB.Business.Services
                     Rating = ratingHistory.Rating ?? 0,
                     RatedAt = ratingHistory.RatedAt ?? DateTime.Now
                 };
-            }      
+            }
         }
 
         private async Task UpdateTitleRatingAsync(string titleId, Guid userId, string action)
         {
-             var connection = _context.Database.GetDbConnection();
+            var connection = _context.Database.GetDbConnection();
             await connection.OpenAsync();
 
             // Execute stored procedure with titleId, userId, and action parameters
@@ -322,11 +312,15 @@ namespace IMDB.Business.Services
             {
                 await connection.ExecuteAsync("UpdateTitleRating", parameters, commandType: CommandType.StoredProcedure);
             }
-           catch
-           (Exception ex)
+            catch (Exception ex)
             {
                 // Log the exception (in real application, use a logging framework)
                 Console.WriteLine($"Failed to update title rating for {titleId}, User: {userId}, Action: {action}. Error: {ex.Message}");
+                throw; // Re-throw to maintain error handling in calling methods
+            }
+            finally
+            {
+                await connection.CloseAsync();
             }
         }
 
@@ -354,7 +348,7 @@ namespace IMDB.Business.Services
             {
                 // Log the exception (in real application, use a logging framework)
                 Console.WriteLine($"Failed to remove rating for TitleId: {titleId}, UserId: {userId}. Error: {ex.Message}");
-                return false; // Ensure a value is returned in case of an exception
+                return false; // Return false instead of throwing to maintain consistent return behavior
             }
         }
     }

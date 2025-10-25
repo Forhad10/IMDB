@@ -7,7 +7,7 @@ To use the optimized `UpdateTitleRating` stored procedure, you need to execute i
 ### 1. Connect to PostgreSQL Database
 
 ```bash
-psql -h localhost -d IMBD -U postgres -W
+psql -h localhost -d IMDB -U postgres -W
 ```
 
 ### 2. Execute the Stored Procedure
@@ -90,7 +90,7 @@ $$;
 You can also execute the stored procedure directly from the file:
 
 ```bash
-psql -h localhost -d IMBD -U postgres -W -f IMDB.Data/UpdateTitleRating_Procedure.sql
+psql -h localhost -d IMDB -U postgres -W -f IMDB.Data/UpdateTitleRating_Procedure.sql
 ```
 
 ### 4. Verify Installation

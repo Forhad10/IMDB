@@ -1,5 +1,4 @@
 using IMDB.Business.Services;
-using IMDB.Data.Entities;
 using Microsoft.AspNetCore.Mvc;
 
 namespace IMDB.API.Controllers

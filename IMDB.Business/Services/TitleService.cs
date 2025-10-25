@@ -39,7 +39,9 @@ namespace IMDB.Business.Services
                        COALESCE(tr.num_votes, 0) as NumVotes
                        from titles t
                        left join title_ratings tr on t.title_id = tr.title_id
-                      ORDER BY AverageRating DESC, t.title_id ASC  OFFSET @Offset LIMIT @PageSize";
+                      ORDER BY AverageRating DESC, t.title_id ASC
+                      OFFSET @Offset ROWS
+                      FETCH NEXT @PageSize ROWS ONLY";
             var parameters = new { Offset = offset, PageSize = pageSize };
             var data = await connection.QueryAsync<TitleDto>(sql, parameters);
 

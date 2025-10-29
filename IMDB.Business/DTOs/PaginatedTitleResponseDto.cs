@@ -20,5 +20,13 @@ namespace IMDB.Business.DTOs
         public string? StartYear { get; set; }
         public decimal AverageRating { get; set; }
         public int NumVotes { get; set; }
+
+        public int? BookmarkId { get; set; }
+
+        public Guid? UserIdBookmark { get; set; }
+
+        public string? RatingHistoryId { get; set; }
+        public Guid? UserIdRating { get; set; }
+
     }
 }

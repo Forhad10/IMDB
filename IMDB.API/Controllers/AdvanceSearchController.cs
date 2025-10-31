@@ -1,0 +1,97 @@
+﻿using IMDB.Business.Services;
+using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace IMDB.API.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class AdvanceSearchController : ControllerBase
+    {
+        private readonly AdvanceSearchService _service;
+
+        public AdvanceSearchController(AdvanceSearchService service)
+        {
+            _service = service;
+        }
+
+        [HttpGet("person-words/{actorId}")]
+        public async Task<IActionResult> GetPersonWords(string actorId, [FromQuery] int limit = 10)
+        {
+            if (string.IsNullOrWhiteSpace(actorId))
+            {
+                return BadRequest("Actor ID is required");
+            }
+
+            var data = await _service.GetPersonWordsAsync(actorId, limit);
+
+            var response = new
+            {
+                actorId,
+                limit,
+                data
+            };
+
+            return Ok(response);
+        }
+
+        [HttpPost("exact-match-titles")]
+        public async Task<IActionResult> GetExactMatchTitles([FromBody] IEnumerable<string> keywords)
+        {
+            if (keywords == null || !keywords.Any())
+            {
+                return BadRequest("Keywords array is required");
+            }
+
+            var data = await _service.GetExactMatchTitlesAsync(keywords.ToArray());
+
+            var response = new
+            {
+                keywords,
+                data
+            };
+
+            return Ok(response);
+        }
+
+        [HttpPost("best-match-titles")]
+        public async Task<IActionResult> GetBestMatchTitles([FromBody] IEnumerable<string> keywords)
+        {
+            if (keywords == null || !keywords.Any())
+            {
+                return BadRequest("Keywords array is required");
+            }
+
+            var data = await _service.GetBestMatchTitlesAsync(keywords.ToArray());
+
+            var response = new
+            {
+                keywords,
+                data
+            };
+
+            return Ok(response);
+        }
+
+        [HttpPost("keyword-word-list")]
+        public async Task<IActionResult> GetKeywordWordList([FromBody] IEnumerable<string> keywords)
+        {
+            if (keywords == null || !keywords.Any())
+            {
+                return BadRequest("Keywords array is required");
+            }
+
+            var data = await _service.GetKeywordWordListAsync(keywords.ToArray());
+
+            var response = new
+            {
+                keywords,
+                data
+            };
+
+            return Ok(response);
+        }
+    }
+}

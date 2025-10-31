@@ -16,6 +16,7 @@ builder.Services.AddScoped<TitleService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<MovieSearchService>();
 builder.Services.AddScoped<ActorService>();
+builder.Services.AddScoped<AdvanceSearchService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

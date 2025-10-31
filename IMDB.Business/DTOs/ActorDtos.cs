@@ -2,53 +2,29 @@ using System.Collections.Generic;
 
 namespace IMDB.Business.DTOs
 {
-    public class SearchActorsRequestDto
+    public class PersonWordResult
     {
-        public string SearchQuery { get; set; } = string.Empty;
-        public int Page { get; set; } = 1;
-        public int PageSize { get; set; } = 10;
+        public string Word { get; set; } = string.Empty;
+        public int Frequency { get; set; }
     }
 
-    public class CoPlayersRequestDto
-    {
-        public string ActorId { get; set; } = string.Empty;
-        public int Page { get; set; } = 1;
-        public int PageSize { get; set; } = 10;
-    }
-
-    public class GetAllActorsRequestDto
-    {
-        public int Page { get; set; } = 1;
-        public int PageSize { get; set; } = 10;
-    }
-
-    public class PopularActorsRequestDto
+    public class ExactMatchTitleResult
     {
         public string TitleId { get; set; } = string.Empty;
-        public int Page { get; set; } = 1;
-        public int PageSize { get; set; } = 10;
+        public string PrimaryTitle { get; set; } = string.Empty;
     }
 
-    public class ActorDto
+    public class BestMatchTitleResult
     {
-        public string NameId { get; set; } = string.Empty;
-        public string? PrimaryName { get; set; }
-        public string? BirthYear { get; set; }
-        public string? DeathYear { get; set; }
-        public string? PrimaryProfession { get; set; }
-        public double? WeightedRating { get; set; }
-        public int? TotalVotes { get; set; }
-        public int? Frequency { get; set; }
+        public string TitleId { get; set; } = string.Empty;
+        public string PrimaryTitle { get; set; } = string.Empty;
+        public int MatchedCount { get; set; }
+        public string[] MatchedWords { get; set; } = System.Array.Empty<string>();
     }
 
-    public class ActorSearchResponseDto
+    public class KeywordWordResult
     {
-        public int Page { get; set; }
-        public int PageSize { get; set; }
-        public int TotalCount { get; set; }
-        public string? SearchQuery { get; set; }
-        public string? ActorId { get; set; }
-        public string? TitleId { get; set; }
-        public IEnumerable<ActorDto> Data { get; set; } = new List<ActorDto>();
+        public string Word { get; set; } = string.Empty;
+        public int Frequency { get; set; }
     }
 }

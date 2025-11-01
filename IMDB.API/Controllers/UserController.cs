@@ -1,6 +1,9 @@
-using IMDB.Business.Services;
 using IMDB.Business.DTOs;
+using IMDB.Business.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace IMDB.API.Controllers
 {
@@ -71,7 +74,32 @@ namespace IMDB.API.Controllers
             }
         }
 
-  
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteUser(Guid id)
+        {
+            try
+            {
+            
+
+                var result = await _userService.DeleteUserAsync(id);
+
+                if (!result)
+                {
+                    return NotFound(new { message = "User not found" });
+                }
+
+                return NoContent(); // 204 No Content
+            }
+            catch (Exception ex)
+            {
+               
+                return StatusCode(500, new { message = "An error occurred while deleting the user" });
+            }
+        }
+
+
+
         [HttpGet("{userId}/bookmarks")]
         public async Task<IActionResult> GetUserBookmarks(Guid userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {

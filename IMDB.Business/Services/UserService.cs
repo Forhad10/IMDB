@@ -29,7 +29,7 @@ namespace IMDB.Business.Services
                 throw new ArgumentException("User with this email or username already exists");
             }
 
-            // Hash password (for now using simple hash, should use proper password hashing in production)
+
             var passwordHash = HashPassword(signupDto.Password);
 
             var user = new User
@@ -114,7 +114,6 @@ namespace IMDB.Business.Services
 
         private string GenerateSimpleToken(Guid userId)
         {
-            // Simple token generation for now - should use JWT in production
             var tokenData = $"{userId}_{DateTime.Now.Ticks}";
             using var sha256 = SHA256.Create();
             var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(tokenData));
@@ -314,9 +313,9 @@ namespace IMDB.Business.Services
             }
             catch (Exception ex)
             {
-                // Log the exception (in real application, use a logging framework)
+          
                 Console.WriteLine($"Failed to update title rating for {titleId}, User: {userId}, Action: {action}. Error: {ex.Message}");
-                throw; // Re-throw to maintain error handling in calling methods
+                throw; 
             }
             finally
             {
@@ -346,9 +345,32 @@ namespace IMDB.Business.Services
             }
             catch (Exception ex)
             {
-                // Log the exception (in real application, use a logging framework)
+       
                 Console.WriteLine($"Failed to remove rating for TitleId: {titleId}, UserId: {userId}. Error: {ex.Message}");
-                return false; // Return false instead of throwing to maintain consistent return behavior
+                return false; 
+            }
+        }
+
+
+        // UserService.cs
+        public async Task<bool> DeleteUserAsync(Guid userId)
+        {
+            try
+            {
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                {
+                    return false;
+                }
+
+                _context.Users.Remove(user);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+      
+                throw;
             }
         }
     }

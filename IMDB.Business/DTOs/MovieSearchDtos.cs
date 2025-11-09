@@ -7,6 +7,7 @@ namespace IMDB.Business.DTOs
         public string SearchQuery { get; set; } = string.Empty;
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 10;
+        public Guid? UserId { get; set; } = null;
     }
 
     public class StructuredMovieSearchRequestDto
@@ -17,6 +18,7 @@ namespace IMDB.Business.DTOs
         public string? Person { get; set; }
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 10;
+        public Guid? UserId { get; set; } = null;
     }
 
     public class SimilarMoviesRequestDto
@@ -24,6 +26,7 @@ namespace IMDB.Business.DTOs
         public string TitleId { get; set; } = string.Empty;
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 10;
+        public Guid? UserId { get; set; } = null;
     }
 
     public class MovieSearchResultDto
@@ -34,6 +37,13 @@ namespace IMDB.Business.DTOs
         public string? Genres { get; set; }
         public decimal AverageRating { get; set; }
         public int NumVotes { get; set; }
+        
+        // User-specific data
+        public int? BookmarkId { get; set; }
+        public Guid? UserIdBookmark { get; set; }
+        public string? RatingHistoryId { get; set; }
+        public Guid? UserIdRating { get; set; }
+        public decimal? UserRating { get; set; }
     }
 
     public class MovieSearchResponseDto

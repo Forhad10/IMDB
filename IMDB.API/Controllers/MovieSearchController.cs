@@ -16,7 +16,8 @@ namespace IMDB.API.Controllers
         }
 
         [HttpGet("basic")]
-        public async Task<IActionResult> BasicSearch([FromQuery] string query, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> BasicSearch([FromQuery] string query,Guid? userId = null, 
+            [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             if (string.IsNullOrWhiteSpace(query))
             {
@@ -27,7 +28,8 @@ namespace IMDB.API.Controllers
             {
                 SearchQuery = query,
                 Page = page,
-                PageSize = pageSize
+                PageSize = pageSize,
+                UserId = userId
             };
 
             var result = await _searchService.BasicSearchAsync(request);
@@ -57,7 +59,8 @@ namespace IMDB.API.Controllers
             [FromQuery] string? characters,
             [FromQuery] string? person,
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10)
+            [FromQuery] int pageSize = 10,
+            [FromQuery] Guid? userId = null)
         {
             // At least one search parameter is required
             if (string.IsNullOrWhiteSpace(title) && string.IsNullOrWhiteSpace(plot) &&
@@ -101,7 +104,7 @@ namespace IMDB.API.Controllers
         }
 
         [HttpGet("similar/{titleId}")]
-        public async Task<IActionResult> GetSimilarMovies(string titleId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> GetSimilarMovies(string titleId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] Guid? userId = null)
         {
             if (string.IsNullOrWhiteSpace(titleId))
             {
@@ -112,7 +115,8 @@ namespace IMDB.API.Controllers
             {
                 TitleId = titleId,
                 Page = page,
-                PageSize = pageSize
+                PageSize = pageSize,
+                UserId = userId
             };
 
             var result = await _searchService.GetSimilarMoviesAsync(request);

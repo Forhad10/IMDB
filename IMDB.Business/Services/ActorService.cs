@@ -123,7 +123,7 @@ namespace IMDB.Business.Services
             var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { TitleId = request.TitleId });
 
             // Get paginated popular actors results
-            var sql = @"SELECT a.name_id as NameId,
+            var sql = @"SELECT DISTINCT a.name_id as NameId,
                               a.primary_name as PrimaryName,
                               a.birth_year as BirthYear,
                               a.death_year as DeathYear,

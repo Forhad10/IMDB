@@ -51,4 +51,13 @@ namespace IMDB.Business.DTOs
         public string? TitleId { get; set; }
         public IEnumerable<ActorDto> Data { get; set; } = new List<ActorDto>();
     }
+
+
+    public class ExactorBestMatchSearchRequestDto
+{
+    public string[] Keywords { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+    public Guid? UserId { get; set; }
+}
 }

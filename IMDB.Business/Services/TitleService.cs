@@ -60,48 +60,69 @@ namespace IMDB.Business.Services
             var offset = (page - 1) * pageSize;
 
             // Get total count of titles the user has interacted with
-            var countSql = @"SELECT COUNT(*)
-                           FROM (
-                               SELECT TitleId as EntityId FROM UserBookmarks WHERE UserId = @UserId
-                               UNION
-                               SELECT TitleId as EntityId FROM UserRatingHistories WHERE UserId = @UserId
-                               UNION
-                               SELECT EntityId FROM UserNotes WHERE UserId = @UserId AND EntityType = 'Title'
-                           ) u";
+            var countSql = @"select
+                       count(*)
+                       from titles t
+                       left join title_ratings tr on t.title_id = tr.title_id";
 
             var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { UserId = userId });
 
-            // Get paginated data of titles the user has interacted with
-            var sql = @"SELECT t.title_id as TitleId,
-                              t.primary_title as PrimaryTitle,
-                              t.title_type as TitleType,
-                              t.genres as Genres,
-                              t.start_year as StartYear,
-                              COALESCE(tr.average_rating, 0) as AverageRating,
-                              COALESCE(tr.num_votes, 0) as NumVotes
-                       FROM titles t
-                       INNER JOIN (
-                           SELECT TitleId as EntityId FROM UserBookmarks WHERE UserId = @UserId
-                           UNION
-                           SELECT TitleId as EntityId FROM UserRatingHistories WHERE UserId = @UserId
-                           UNION
-                           SELECT EntityId FROM UserNotes WHERE UserId = @UserId AND EntityType = 'Title'
-                       ) u ON t.title_id = u.EntityId
-                       LEFT JOIN title_ratings tr ON t.title_id = tr.title_id
-                       ORDER BY AverageRating DESC, t.title_id ASC
+
+            try
+            {   // Get paginated data of titles the user has interacted with
+                var sql = @"select t.TitleId,t.PrimaryTitle,t.TitleType,t.Genres,t.AverageRating,t.NumVotes,
+                       b.bookmark_id  BookmarkId,b.user_id UserIdBookmark,
+                       C.rating_history_id RatingHistoryId, c.user_id UserIdRating
+                         from  
+                       (select
+                       t.title_id as TitleId,
+                       t.primary_title as PrimaryTitle,
+                       t.title_type as TitleType,
+                       t.genres as Genres,
+                       COALESCE(tr.average_rating, 0) as AverageRating,
+                       COALESCE(tr.num_votes, 0) as NumVotes
+                       from titles t
+                       left join title_ratings tr on t.title_id = tr.title_id) t
+
+					   left join
+					   
+					   (
+                               select * from user_bookmarks where user_id=@UserId
+							   
+					   )  
+					   b on t.TitleId=b.title_id
+
+					    left join
+					   
+					   (
+                               select * from user_rating_history  where user_id=@UserId
+							   
+					   )  
+					   c on t.TitleId=c.title_id
+
+					   
+                      ORDER BY t.AverageRating DESC, t.TitleId ASC
                        OFFSET @Offset ROWS
                        FETCH NEXT @PageSize ROWS ONLY";
 
-            var parameters = new { UserId = userId, Offset = offset, PageSize = pageSize };
-            var data = await connection.QueryAsync<TitleDto>(sql, parameters);
+                var parameters = new { UserId = userId, Offset = offset, PageSize = pageSize };
+                var data = await connection.QueryAsync<TitleDto>(sql, parameters);
 
-            return new PaginatedTitleResponseDto
+                return new PaginatedTitleResponseDto
+                {
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalCount = totalCount,
+                    Data = data
+                };
+            }
+
+
+            catch (System.Exception ex)
             {
-                Page = page,
-                PageSize = pageSize,
-                TotalCount = totalCount,
-                Data = data
-            };
+                throw new System.Exception("Error fetching titles with user data", ex.InnerException);
+
+            }
         }
     }
 }

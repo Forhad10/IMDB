@@ -26,8 +26,44 @@ namespace IMDB.Business.Services
             var countSql = @"SELECT COUNT(*) FROM search_titles(@SearchQuery)";
             var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { SearchQuery = request.SearchQuery });
 
-            // Get paginated search results
-            var sql = @"SELECT t.title_id as TitleId,
+            string sql;
+            object parameters;
+
+            if (request.UserId.HasValue && request.UserId != Guid.Empty)
+            {
+                // Query with user-specific data
+                sql = @"SELECT t.TitleId, t.PrimaryTitle, t.TitleType, t.Genres, t.AverageRating, t.NumVotes,
+                               b.bookmark_id as BookmarkId, b.user_id as UserIdBookmark,
+                               r.rating_history_id as RatingHistoryId, r.user_id as UserIdRating,
+                               r.rating as UserRating
+                        FROM (
+                            SELECT t.title_id as TitleId,
+                                   t.primary_title as PrimaryTitle,
+                                   t.title_type as TitleType,
+                                   t.genres as Genres,
+                                   COALESCE(tr.average_rating, 0) as AverageRating,
+                                   COALESCE(tr.num_votes, 0) as NumVotes
+                            FROM search_titles(@SearchQuery) st
+                            INNER JOIN titles t ON t.title_id = st.title_id
+                            LEFT JOIN title_ratings tr ON t.title_id = tr.title_id
+                        ) t
+                        LEFT JOIN user_bookmarks b ON t.TitleId = b.title_id AND b.user_id = @UserId
+                        LEFT JOIN user_rating_history r ON t.TitleId = r.title_id AND r.user_id = @UserId
+                        ORDER BY t.AverageRating DESC, t.TitleId ASC
+                        LIMIT @PageSize OFFSET @Offset";
+
+                parameters = new
+                {
+                    SearchQuery = request.SearchQuery,
+                    UserId = request.UserId.Value,
+                    PageSize = request.PageSize,
+                    Offset = offset
+                };
+            }
+            else
+            {
+                // Original query without user-specific data
+                sql = @"SELECT t.title_id as TitleId,
                               t.primary_title as PrimaryTitle,
                               t.title_type as TitleType,
                               t.genres as Genres,
@@ -39,12 +75,13 @@ namespace IMDB.Business.Services
                        ORDER BY AverageRating DESC, t.title_id ASC
                        LIMIT @PageSize OFFSET @Offset";
 
-            var parameters = new
-            {
-                SearchQuery = request.SearchQuery,
-                PageSize = request.PageSize,
-                Offset = offset
-            };
+                parameters = new
+                {
+                    SearchQuery = request.SearchQuery,
+                    PageSize = request.PageSize,
+                    Offset = offset
+                };
+            }
 
             var data = await connection.QueryAsync<MovieSearchResultDto>(sql, parameters);
 
@@ -58,7 +95,7 @@ namespace IMDB.Business.Services
             };
         }
 
-        public async Task<MovieSearchResponseDto> StructuredSearchAsync(StructuredMovieSearchRequestDto request)
+        public async Task<MovieSearchResponseDto> StructuredSearchAsync(StructuredMovieSearchRequestDto request) 
         {
             using var connection = _context.Database.GetDbConnection();
             var offset = (request.Page - 1) * request.PageSize;
@@ -73,8 +110,47 @@ namespace IMDB.Business.Services
                 Person = string.IsNullOrWhiteSpace(request.Person) ? null : request.Person
             });
 
-            // Get paginated structured search results
-            var sql = @"SELECT t.title_id as TitleId,
+            string sql;
+            object parameters;
+
+            if (request.UserId.HasValue && request.UserId != Guid.Empty)
+            {
+                // Query with user-specific data
+                sql = @"SELECT t.TitleId, t.PrimaryTitle, t.TitleType, t.Genres, t.AverageRating, t.NumVotes,
+                               b.bookmark_id as BookmarkId, b.user_id as UserIdBookmark,
+                               r.rating_history_id as RatingHistoryId, r.user_id as UserIdRating,
+                               r.rating as UserRating
+                        FROM (
+                            SELECT t.title_id as TitleId,
+                                   t.primary_title as PrimaryTitle,
+                                   t.title_type as TitleType,
+                                   t.genres as Genres,
+                                   COALESCE(tr.average_rating, 0) as AverageRating,
+                                   COALESCE(tr.num_votes, 0) as NumVotes
+                            FROM structured_string_search(@Title, @Plot, @Characters, @Person) sss
+                            INNER JOIN titles t ON t.title_id = sss.title_id
+                            LEFT JOIN title_ratings tr ON t.title_id = tr.title_id
+                        ) t
+                        LEFT JOIN user_bookmarks b ON t.TitleId = b.title_id AND b.user_id = @UserId
+                        LEFT JOIN user_rating_history r ON t.TitleId = r.title_id AND r.user_id = @UserId
+                        ORDER BY t.AverageRating DESC, t.TitleId ASC
+                        LIMIT @PageSize OFFSET @Offset";
+
+                parameters = new
+                {
+                    Title = string.IsNullOrWhiteSpace(request.Title) ? null : request.Title,
+                    Plot = string.IsNullOrWhiteSpace(request.Plot) ? null : request.Plot,
+                    Characters = string.IsNullOrWhiteSpace(request.Characters) ? null : request.Characters,
+                    Person = string.IsNullOrWhiteSpace(request.Person) ? null : request.Person,
+                    UserId = request.UserId.Value,
+                    PageSize = request.PageSize,
+                    Offset = offset
+                };
+            }
+            else
+            {
+                // Original query without user-specific data
+                sql = @"SELECT t.title_id as TitleId,
                               t.primary_title as PrimaryTitle,
                               t.title_type as TitleType,
                               t.genres as Genres,
@@ -86,15 +162,16 @@ namespace IMDB.Business.Services
                        ORDER BY AverageRating DESC, t.title_id ASC
                        LIMIT @PageSize OFFSET @Offset";
 
-            var parameters = new
-            {
-                Title = string.IsNullOrWhiteSpace(request.Title) ? null : request.Title,
-                Plot = string.IsNullOrWhiteSpace(request.Plot) ? null : request.Plot,
-                Characters = string.IsNullOrWhiteSpace(request.Characters) ? null : request.Characters,
-                Person = string.IsNullOrWhiteSpace(request.Person) ? null : request.Person,
-                PageSize = request.PageSize,
-                Offset = offset
-            };
+                parameters = new
+                {
+                    Title = string.IsNullOrWhiteSpace(request.Title) ? null : request.Title,
+                    Plot = string.IsNullOrWhiteSpace(request.Plot) ? null : request.Plot,
+                    Characters = string.IsNullOrWhiteSpace(request.Characters) ? null : request.Characters,
+                    Person = string.IsNullOrWhiteSpace(request.Person) ? null : request.Person,
+                    PageSize = request.PageSize,
+                    Offset = offset
+                };
+            }
 
             var data = await connection.QueryAsync<MovieSearchResultDto>(sql, parameters);
 
@@ -125,8 +202,44 @@ namespace IMDB.Business.Services
             var countSql = @"SELECT COUNT(*) FROM similar_movies(@TitleId)";
             var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { TitleId = request.TitleId });
 
-            // Get paginated similar movies results
-            var sql = @"SELECT t.title_id as TitleId,
+            string sql;
+            object parameters;
+
+            if (request.UserId.HasValue && request.UserId != Guid.Empty)
+            {
+                // Query with user-specific data
+                sql = @"SELECT t.TitleId, t.PrimaryTitle, t.TitleType, t.Genres, t.AverageRating, t.NumVotes,
+                               b.bookmark_id as BookmarkId, b.user_id as UserIdBookmark,
+                               r.rating_history_id as RatingHistoryId, r.user_id as UserIdRating,
+                               r.rating as UserRating
+                        FROM (
+                            SELECT t.title_id as TitleId,
+                                   t.primary_title as PrimaryTitle,
+                                   t.title_type as TitleType,
+                                   t.genres as Genres,
+                                   COALESCE(tr.average_rating, 0) as AverageRating,
+                                   COALESCE(tr.num_votes, 0) as NumVotes
+                            FROM similar_movies(@TitleId) sm
+                            INNER JOIN titles t ON t.title_id = sm.title_id
+                            LEFT JOIN title_ratings tr ON t.title_id = tr.title_id
+                        ) t
+                        LEFT JOIN user_bookmarks b ON t.TitleId = b.title_id AND b.user_id = @UserId
+                        LEFT JOIN user_rating_history r ON t.TitleId = r.title_id AND r.user_id = @UserId
+                        ORDER BY t.AverageRating DESC, t.TitleId ASC
+                        LIMIT @PageSize OFFSET @Offset";
+
+                parameters = new
+                {
+                    TitleId = request.TitleId,
+                    UserId = request.UserId.Value,
+                    PageSize = request.PageSize,
+                    Offset = offset
+                };
+            }
+            else
+            {
+                // Original query without user-specific data
+                sql = @"SELECT t.title_id as TitleId,
                               t.primary_title as PrimaryTitle,
                               t.title_type as TitleType,
                               t.genres as Genres,
@@ -138,12 +251,13 @@ namespace IMDB.Business.Services
                        ORDER BY AverageRating DESC, t.title_id ASC
                        LIMIT @PageSize OFFSET @Offset";
 
-            var parameters = new
-            {
-                TitleId = request.TitleId,
-                PageSize = request.PageSize,
-                Offset = offset
-            };
+                parameters = new
+                {
+                    TitleId = request.TitleId,
+                    PageSize = request.PageSize,
+                    Offset = offset
+                };
+            }
 
             var data = await connection.QueryAsync<MovieSearchResultDto>(sql, parameters);
 

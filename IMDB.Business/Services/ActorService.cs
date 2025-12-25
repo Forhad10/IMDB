@@ -123,7 +123,7 @@ namespace IMDB.Business.Services
             var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { TitleId = request.TitleId });
 
             // Get paginated popular actors results
-            var sql = @"SELECT a.name_id as NameId,
+            var sql = @"SELECT DISTINCT a.name_id as NameId,
                               a.primary_name as PrimaryName,
                               a.birth_year as BirthYear,
                               a.death_year as DeathYear,
@@ -163,7 +163,7 @@ namespace IMDB.Business.Services
 
             // Get paginated actor IDs for rating updates
             var offset = (request.Page - 1) * request.PageSize;
-            var actorIdsSql = @"SELECT name_id FROM actors ORDER BY name_id LIMIT @PageSize OFFSET @Offset";
+            var actorIdsSql = @"SELECT name_id FROM actors ORDER BY primary_name LIMIT @PageSize OFFSET @Offset";
             var actorIds = await connection.QueryAsync<string>(actorIdsSql, new { PageSize = request.PageSize, Offset = offset });
 
             // Call update_actor_ratings for each actor

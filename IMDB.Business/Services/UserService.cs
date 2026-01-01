@@ -2,8 +2,12 @@ using Dapper;
 using IMDB.Business.DTOs;
 using IMDB.Data.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Data;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -12,10 +16,18 @@ namespace IMDB.Business.Services
     public class UserService
     {
         private readonly IMDBDbContext _context;
+        private readonly IConfiguration _configuration;
+        private IMDBDbContext context;
+
+        public UserService(IMDBDbContext context, IConfiguration configuration)
+        {
+            _context = context;
+            _configuration = configuration;
+        }
 
         public UserService(IMDBDbContext context)
         {
-            _context = context;
+            this.context = context;
         }
 
         public async Task<UserResponseDto> SignupAsync(UserSignupDto signupDto)
@@ -88,8 +100,8 @@ namespace IMDB.Business.Services
                 throw new ArgumentException("Invalid email or password");
             }
 
-            // TODO: Generate JWT token here
-            var token = GenerateSimpleToken(user.UserId);
+            // Generate JWT token
+            var token = GenerateJwtToken(user);
 
             return new AuthResponseDto
             {
@@ -112,12 +124,42 @@ namespace IMDB.Business.Services
             return Convert.ToBase64String(bytes);
         }
 
-        private string GenerateSimpleToken(Guid userId)
+        private string GenerateJwtToken(User user)
         {
-            var tokenData = $"{userId}_{DateTime.Now.Ticks}";
-            using var sha256 = SHA256.Create();
-            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(tokenData));
-            return Convert.ToBase64String(bytes);
+            var key = _configuration["Jwt:Key"];
+            var issuer = _configuration["Jwt:Issuer"];
+            var audience = _configuration["Jwt:Audience"];
+            var expiresMinutesStr = _configuration["Jwt:ExpiresMinutes"];
+
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                throw new ArgumentException("JWT Key is not configured");
+            }
+
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var claims = new List<Claim>
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
+                new Claim(JwtRegisteredClaimNames.UniqueName, user.Username ?? string.Empty),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+
+            var now = DateTime.UtcNow;
+            var expires = now.AddMinutes(int.TryParse(expiresMinutesStr, out var m) ? m : 60);
+
+            var jwt = new JwtSecurityToken(
+                issuer: string.IsNullOrWhiteSpace(issuer) ? null : issuer,
+                audience: string.IsNullOrWhiteSpace(audience) ? null : audience,
+                claims: claims,
+                notBefore: now,
+                expires: expires,
+                signingCredentials: credentials
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(jwt);
         }
 
         /// get  user bookmarks

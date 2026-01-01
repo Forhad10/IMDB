@@ -100,11 +100,19 @@ namespace IMDB.API.Controllers
 
 
 
+        [Authorize]
         [HttpGet("{userId}/bookmarks")]
         public async Task<IActionResult> GetUserBookmarks(Guid userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
+                var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                          ?? User.FindFirst("sub")?.Value;
+                if (string.IsNullOrWhiteSpace(sub) || !Guid.TryParse(sub, out var authUserId) || authUserId != userId)
+                {
+                    return Forbid();
+                }
+
                 var bookmarks = await _userService.GetUserBookmarksAsync(userId, page, pageSize);
 
                 return Ok(new
@@ -123,11 +131,19 @@ namespace IMDB.API.Controllers
             }
         }
 
+        [Authorize]
         [HttpPost("{userId}/bookmarks")]
         public async Task<IActionResult> AddBookmark(Guid userId, [FromBody] AddBookmarkDto bookmarkDto)
         {
             try
             {
+                var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                          ?? User.FindFirst("sub")?.Value;
+                if (string.IsNullOrWhiteSpace(sub) || !Guid.TryParse(sub, out var authUserId) || authUserId != userId)
+                {
+                    return Forbid();
+                }
+
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
@@ -151,11 +167,19 @@ namespace IMDB.API.Controllers
             }
         }
 
+        [Authorize]
         [HttpDelete("{userId}/bookmarks/{titleId}")]
         public async Task<IActionResult> RemoveBookmark(Guid userId, string titleId)
         {
             try
             {
+                var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                          ?? User.FindFirst("sub")?.Value;
+                if (string.IsNullOrWhiteSpace(sub) || !Guid.TryParse(sub, out var authUserId) || authUserId != userId)
+                {
+                    return Forbid();
+                }
+
                 var result = await _userService.RemoveBookmarkAsync(userId, titleId);
 
                 if (!result)
@@ -178,13 +202,19 @@ namespace IMDB.API.Controllers
             }
         }
 
-
-
+        [Authorize]
         [HttpPost("{userId}/ratings")]
         public async Task<IActionResult> AddOrUpdateRating(Guid userId, [FromBody] AddRatingDto ratingDto)
         {
             try
             {
+                var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                          ?? User.FindFirst("sub")?.Value;
+                if (string.IsNullOrWhiteSpace(sub) || !Guid.TryParse(sub, out var authUserId) || authUserId != userId)
+                {
+                    return Forbid();
+                }
+
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
@@ -208,11 +238,19 @@ namespace IMDB.API.Controllers
             }
         }
 
+        [Authorize]
         [HttpDelete("{userId}/ratings/{titleId}")]
         public async Task<IActionResult> RemoveRating(Guid userId, string titleId)
         {
             try
             {
+                var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                          ?? User.FindFirst("sub")?.Value;
+                if (string.IsNullOrWhiteSpace(sub) || !Guid.TryParse(sub, out var authUserId) || authUserId != userId)
+                {
+                    return Forbid();
+                }
+
                 var result = await _userService.RemoveRatingAsync(userId, titleId);
 
                 if (!result)
@@ -234,12 +272,19 @@ namespace IMDB.API.Controllers
                 return StatusCode(500, new { message = "An error occurred while removing rating", error = ex.Message });
             }
         }
-
+        [Authorize]
         [HttpGet("{userId}/ratings")]
         public async Task<IActionResult> GetUserRatingHistory(Guid userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             try
             {
+                var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                          ?? User.FindFirst("sub")?.Value;
+                if (string.IsNullOrWhiteSpace(sub) || !Guid.TryParse(sub, out var authUserId) || authUserId != userId)
+                {
+                    return Forbid();
+                }
+
                 var ratingHistory = await _userService.GetUserRatingHistoryAsync(userId, page, pageSize);
 
                 return Ok(new

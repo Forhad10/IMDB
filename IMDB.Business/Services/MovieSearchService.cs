@@ -195,12 +195,28 @@ namespace IMDB.Business.Services
             var offset = (request.Page - 1) * request.PageSize;
 
             // Get the base movie title for reference
-            var baseMovieSql = @"SELECT primary_title FROM titles WHERE title_id = @TitleId";
-            var baseMovieTitle = await connection.ExecuteScalarAsync<string>(baseMovieSql, new { TitleId = request.TitleId });
+            //   var baseMovieSql = @"SELECT primary_title FROM titles WHERE title_id = @TitleId";
+            //   var baseMovieTitle = await connection.ExecuteScalarAsync<string>(baseMovieSql, new { TitleId = request.TitleId });
+           
+            var baseMovieSql = @"
+                            SELECT primary_title, title_id
+                            FROM titles
+                            WHERE primary_title ILIKE @TitleId
+                            ORDER BY primary_title
+                            LIMIT 1;
+                            ";
+            var baseMovie = await connection.QuerySingleOrDefaultAsync<(string PrimaryTitle, string TitleId)>(
+                            baseMovieSql,
+                            new { TitleId = $"%{request.TitleId}%" }
+                        );
+
+
+            var title = baseMovie.PrimaryTitle;
+            var TitleIdFromMovie = baseMovie.TitleId;
 
             // Get total count using the similar movies function
             var countSql = @"SELECT COUNT(*) FROM similar_movies(@TitleId)";
-            var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { TitleId = request.TitleId });
+            var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { TitleId = TitleIdFromMovie });
 
             string sql;
             object parameters;
@@ -230,7 +246,7 @@ namespace IMDB.Business.Services
 
                 parameters = new
                 {
-                    TitleId = request.TitleId,
+                    TitleId = TitleIdFromMovie,
                     UserId = request.UserId.Value,
                     PageSize = request.PageSize,
                     Offset = offset
@@ -253,7 +269,7 @@ namespace IMDB.Business.Services
 
                 parameters = new
                 {
-                    TitleId = request.TitleId,
+                    TitleId = TitleIdFromMovie,
                     PageSize = request.PageSize,
                     Offset = offset
                 };
@@ -266,8 +282,8 @@ namespace IMDB.Business.Services
                 Page = request.Page,
                 PageSize = request.PageSize,
                 TotalCount = totalCount,
-                BaseTitleId = request.TitleId,
-                SearchQuery = baseMovieTitle,
+                BaseTitleId = TitleIdFromMovie,
+                SearchQuery = title,
                 Data = data
             };
         }

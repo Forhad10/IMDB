@@ -115,12 +115,28 @@ namespace IMDB.Business.Services
             var offset = (request.Page - 1) * request.PageSize;
 
             // Get the movie title for reference
-            var movieSql = @"SELECT primary_title FROM titles WHERE title_id = @TitleId";
-            var movieTitle = await connection.ExecuteScalarAsync<string>(movieSql, new { TitleId = request.TitleId });
+            //   var movieSql = @"SELECT primary_title FROM titles WHERE title_id = @TitleId";
+            //   var movieTitle = await connection.ExecuteScalarAsync<string>(movieSql, new { TitleId = $"%{request.TitleId}%" });
+
+
+            var movieSql = @"
+                            SELECT primary_title, title_id
+                            FROM titles
+                            WHERE primary_title ILIKE @TitleId
+                            ORDER BY primary_title
+                            LIMIT 1;
+                            ";
+            var movie = await connection.QuerySingleOrDefaultAsync<(string PrimaryTitle, string TitleId)>(
+                            movieSql,
+                            new { TitleId = $"%{request.TitleId}%" }
+                        );
+
+            var title = movie.PrimaryTitle;
+            var TitleIdFromMovie = movie.TitleId;
 
             // Get total count using the popular actors function
             var countSql = @"SELECT COUNT(*) FROM popular_actors(@TitleId)";
-            var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { TitleId = request.TitleId });
+            var totalCount = await connection.ExecuteScalarAsync<int>(countSql, new { TitleId = TitleIdFromMovie });
 
             // Get paginated popular actors results
             var sql = @"SELECT DISTINCT a.name_id as NameId,
@@ -139,7 +155,7 @@ namespace IMDB.Business.Services
 
             var parameters = new
             {
-                TitleId = request.TitleId,
+                TitleId = TitleIdFromMovie,
                 PageSize = request.PageSize,
                 Offset = offset
             };
@@ -151,8 +167,8 @@ namespace IMDB.Business.Services
                 Page = request.Page,
                 PageSize = request.PageSize,
                 TotalCount = totalCount,
-                SearchQuery = movieTitle,
-                TitleId = request.TitleId,
+                SearchQuery = movie.PrimaryTitle,
+                TitleId = TitleIdFromMovie,
                 Data = data
             };
         }
